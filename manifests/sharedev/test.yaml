@@ -13,7 +13,8 @@ spec:
       labels:
         app: pause
         sharedev.requests: '0.5'
-        sharedev.limit: '1.0'
+        sharedev.limits: '1.0'
+        sharedev.memory: '0.5'
         sharedev.vendor: 'example.com'
         sharedev.model: 'mydev'
     spec:
