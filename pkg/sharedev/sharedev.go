@@ -24,11 +24,26 @@ const (
 type ShareDevPlugin struct {
 }
 
+var _ framework.PreFilterPlugin = &ShareDevPlugin{}
 var _ framework.FilterPlugin = &ShareDevPlugin{}
 
 // Name returns name of the plugin.
 func (ep *ShareDevPlugin) Name() string {
 	return Name
+}
+
+func (e *ShareDevPlugin) PreFilterExtensions() framework.PreFilterExtensions {
+	return nil
+}
+
+func (e *ShareDevPlugin) PreFilter(ctx context.Context, state *framework.CycleState, pod *v1.Pod) (*framework.PreFilterResult, *framework.Status) {
+	log.Println("ShareDevPlugin PreFilter is working!!")
+
+	state.Write(ShareDevStateKey, &ShareDevState{
+		FreeResourcesPerNode: map[string][]FreeResources{},
+	})
+
+	return nil, framework.NewStatus(framework.Success)
 }
 
 func (e *ShareDevPlugin) Filter(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeInfo *framework.NodeInfo) *framework.Status {
@@ -55,30 +70,43 @@ func (e *ShareDevPlugin) Filter(ctx context.Context, state *framework.CycleState
 
 	var nodeIP string
 	for _, addr := range nodeInfo.Node().Status.Addresses {
-		// TODO: verify this is actually the IP address of the Node
 		if addr.Type == "InternalIP" {
 			nodeIP = addr.Address
+			break
 		}
 	}
-
 	log.Println("ShareDevPlugin nodeIP: ", nodeIP)
+	if nodeIP == "" {
+		return framework.NewStatus(framework.Unschedulable, "node does not have InternalIP")
+	}
 
-	fitsDevices, err := e.callDeviceManager(nodeIP, pod.Labels["sharedev.vendor"], pod.Labels["sharedev.model"], requests, limits, memory)
-	if err != nil || len(fitsDevices) == 0 {
+	freeResources, err := e.callDeviceManager(nodeIP, pod.Labels["sharedev.vendor"], pod.Labels["sharedev.model"], requests, limits, memory)
+	if err != nil || len(freeResources) == 0 {
 		return framework.NewStatus(framework.Unschedulable, err.Error())
 	}
 
-	log.Println("ShareDevPlugin fitsDevices: ", fitsDevices)
+	shareDevState, err := getShareDevState(state)
+	if err != nil {
+		return framework.NewStatus(framework.Unschedulable, err.Error())
+	}
 
-	// TODO: write fitsDevices to state
-	// state.Write(...)
+	shareDevState.FreeResourcesPerNode[nodeIP] = freeResources
 
-	// TODO: is the state kept in context of a scheduling of a single Pod?
+	log.Println("ShareDevPlugin freeResources: ", freeResources)
 
-	return framework.NewStatus(framework.Success)
+	for _, free := range freeResources {
+		if requests <= free.Requests && memory <= free.Memory {
+			return framework.NewStatus(framework.Success)
+		}
+	}
+
+	// TODO: check if CLASSIC resources like CPU and memory are available
+	// maybe use the normal Filter plugin for that?
+
+	return framework.NewStatus(framework.Unschedulable, "no resources available")
 }
 
-func (e *ShareDevPlugin) callDeviceManager(nodeIP, vendor, model string, requests, limits, memory float64) ([]string, error) {
+func (e *ShareDevPlugin) callDeviceManager(nodeIP, vendor, model string, requests, limits, memory float64) ([]FreeResources, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -102,14 +130,16 @@ func (e *ShareDevPlugin) callDeviceManager(nodeIP, vendor, model string, request
 		return nil, err
 	}
 
-	fitsDevices := []string{}
+	freeResources := []FreeResources{}
 	for _, free := range resp.Free {
-		if memory <= free.Memory && requests <= free.Requests {
-			fitsDevices = append(fitsDevices, free.DeviceId)
-		}
+		freeResources = append(freeResources, FreeResources{
+			DeviceId: free.DeviceId,
+			Requests: free.Requests,
+			Memory:   free.Memory,
+		})
 	}
 
-	return fitsDevices, nil
+	return freeResources, nil
 }
 
 func New(_ runtime.Object, _ framework.Handle) (framework.Plugin, error) {
