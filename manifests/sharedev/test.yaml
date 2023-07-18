@@ -12,9 +12,9 @@ spec:
     metadata:
       labels:
         app: pause
-        sharedev.requests: '0.5'
+        sharedev.requests: '0.25'
         sharedev.limits: '1.0'
-        sharedev.memory: '0.5'
+        sharedev.memory: '0.25'
         sharedev.vendor: 'example.com'
         sharedev.model: 'mydev'
     spec:
