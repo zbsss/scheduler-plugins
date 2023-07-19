@@ -32,7 +32,16 @@ func (sp *ShareDevPlugin) Reserve(ctx context.Context, state *framework.CycleSta
 func (sp *ShareDevPlugin) Unreserve(ctx context.Context, state *framework.CycleState, p *v1.Pod, nodeName string) {
 	log.Println("ShareDevPlugin Unreserve is working!!")
 
-	// TODO:
-	// 1. Create UnregisterPodQuota on device manger
-	// 2. Call UnregisterPodQuota on device manager
+	shareDevState, err := getShareDevState(state)
+	if err != nil {
+		log.Printf("ShareDevPlugin Unreserve: error getting ShareDevState: %s", err.Error())
+	}
+
+	err = unreservePodQuota(shareDevState.NodeNameToIP[nodeName], shareDevState.ReservedDeviceId, shareDevState.PodQ)
+	if err != nil {
+		log.Printf("ShareDevPlugin Unreserve: error unreserving device: %s", err.Error())
+	}
+
+	log.Printf("ShareDevPlugin Reserve: reserved device: %s on node: %s", shareDevState.ReservedDeviceId, nodeName)
+	shareDevState.ReservedDeviceId = ""
 }

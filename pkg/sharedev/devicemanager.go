@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func getFreeResources(nodeIP string, podSpec PodRequestedQuota) ([]FreeDeviceResources, error) {
+func getFreeResources(nodeIP string, pod PodRequestedQuota) ([]FreeDeviceResources, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -27,8 +27,8 @@ func getFreeResources(nodeIP string, podSpec PodRequestedQuota) ([]FreeDeviceRes
 	grpc := pb.NewDeviceManagerClient(conn)
 
 	resp, err := grpc.GetAvailableDevices(ctx, &pb.GetAvailableDevicesRequest{
-		Vendor: podSpec.Vendor,
-		Model:  podSpec.Model,
+		Vendor: pod.Vendor,
+		Model:  pod.Model,
 	})
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func reservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
 
 	grpc := pb.NewDeviceManagerClient(conn)
 
-	_, err = grpc.ReservePodQuota(ctx, &pb.RegisterPodQuotaRequest{
+	_, err = grpc.ReservePodQuota(ctx, &pb.ReservePodQuotaRequest{
 		DeviceId: deviceId,
 		PodId:    pod.PodId,
 		Requests: pod.Requests,
@@ -72,7 +72,7 @@ func reservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
 	return err
 }
 
-func unreservePodQuota(nodeIP, deviceId string) error {
+func unreservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -88,7 +88,7 @@ func unreservePodQuota(nodeIP, deviceId string) error {
 
 	grpc := pb.NewDeviceManagerClient(conn)
 
-	_, err = grpc.UnreservePodQuota(ctx, &pb.RegisterPodQuotaRequest{
+	_, err = grpc.UnreservePodQuota(ctx, &pb.UnreservePodQuotaRequest{
 		DeviceId: deviceId,
 		PodId:    pod.PodId,
 	})

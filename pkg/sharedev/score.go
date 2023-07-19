@@ -80,7 +80,7 @@ func getBestFit(pod PodRequestedQuota, freeResources []FreeDeviceResources) (int
 		if podFits(pod, free) {
 			score := int64((free.Requests - pod.Requests + free.Memory - pod.Memory) * 100)
 
-			if score > highestScore {
+			if score >= highestScore {
 				highestScore = score
 				device = free
 			}

@@ -297,7 +297,7 @@ github.com/stoewer/go-strcase
 # github.com/stretchr/testify v1.8.4
 ## explicit; go 1.20
 github.com/stretchr/testify/assert
-# github.com/zbsss/device-manager v0.0.2
+# github.com/zbsss/device-manager v0.0.5
 ## explicit; go 1.18
 github.com/zbsss/device-manager/generated
 # go.etcd.io/etcd/api/v3 v3.5.5

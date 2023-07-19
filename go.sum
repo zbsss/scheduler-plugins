@@ -485,8 +485,8 @@ github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9dec
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.1/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zbsss/device-manager v0.0.2 h1:wmAuQBAPPLs/8poDnwKrINbGCBsxSkZpEzCkbbK+YjE=
-github.com/zbsss/device-manager v0.0.2/go.mod h1:T7hEr35M6OHlkjm7BYnllTtodS1qgZMSrhozQec4+OQ=
+github.com/zbsss/device-manager v0.0.5 h1:m62i9gAXNsPo+xtQbegTAVEB0ka0uWm3+SV3nEpKxJw=
+github.com/zbsss/device-manager v0.0.5/go.mod h1:T7hEr35M6OHlkjm7BYnllTtodS1qgZMSrhozQec4+OQ=
 go.etcd.io/bbolt v1.3.6 h1:/ecaJf0sk1l4l6V4awd65v2C3ILy7MSj+s/x1ADCIMU=
 go.etcd.io/etcd/api/v3 v3.5.5 h1:BX4JIbQ7hl7+jL+g+2j5UAr0o1bctCm6/Ct+ArBGkf0=
 go.etcd.io/etcd/api/v3 v3.5.5/go.mod h1:KFtNaxGDw4Yx/BA4iPPwevUTAuqcsPxzyX8PHydchN8=
