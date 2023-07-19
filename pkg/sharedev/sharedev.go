@@ -16,6 +16,7 @@ const (
 )
 
 type ShareDevPlugin struct {
+	handle framework.Handle
 }
 
 var _ framework.PreFilterPlugin = &ShareDevPlugin{}
@@ -39,6 +40,8 @@ func podFits(pod PodRequestedQuota, freeResources FreeDeviceResources) bool {
 	return pod.Requests <= freeResources.Requests && pod.Memory <= freeResources.Memory
 }
 
-func New(_ runtime.Object, _ framework.Handle) (framework.Plugin, error) {
-	return &ShareDevPlugin{}, nil
+func New(_ runtime.Object, handle framework.Handle) (framework.Plugin, error) {
+	return &ShareDevPlugin{
+		handle: handle,
+	}, nil
 }
