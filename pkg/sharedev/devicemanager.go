@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func (sp *ShareDevPlugin) getFreeResources(nodeIP string, podSpec ShareDevPodSpec) ([]FreeResources, error) {
+func getFreeResources(nodeIP string, podSpec PodRequestedQuota) ([]FreeDeviceResources, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -34,9 +34,9 @@ func (sp *ShareDevPlugin) getFreeResources(nodeIP string, podSpec ShareDevPodSpe
 		return nil, err
 	}
 
-	freeResources := []FreeResources{}
+	freeResources := []FreeDeviceResources{}
 	for _, free := range resp.Free {
-		freeResources = append(freeResources, FreeResources{
+		freeResources = append(freeResources, FreeDeviceResources{
 			DeviceId: free.DeviceId,
 			Requests: free.Requests,
 			Memory:   free.Memory,
@@ -44,4 +44,53 @@ func (sp *ShareDevPlugin) getFreeResources(nodeIP string, podSpec ShareDevPodSpe
 	}
 
 	return freeResources, nil
+}
+
+func reservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		fmt.Sprintf("%s:%s", nodeIP, deviceManagerPort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	grpc := pb.NewDeviceManagerClient(conn)
+
+	_, err = grpc.ReservePodQuota(ctx, &pb.RegisterPodQuotaRequest{
+		DeviceId: deviceId,
+		PodId:    pod.PodId,
+		Requests: pod.Requests,
+		Memory:   pod.Memory,
+		Limit:    pod.Limits,
+	})
+	return err
+}
+
+func unreservePodQuota(nodeIP, deviceId string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+
+	conn, err := grpc.DialContext(
+		ctx,
+		fmt.Sprintf("%s:%s", nodeIP, deviceManagerPort),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		return fmt.Errorf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	grpc := pb.NewDeviceManagerClient(conn)
+
+	_, err = grpc.UnreservePodQuota(ctx, &pb.RegisterPodQuotaRequest{
+		DeviceId: deviceId,
+		PodId:    pod.PodId,
+	})
+	return err
 }

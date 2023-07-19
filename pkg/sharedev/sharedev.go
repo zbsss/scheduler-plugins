@@ -35,7 +35,7 @@ func (sp *ShareDevPlugin) Name() string {
 	return Name
 }
 
-func podFits(pod ShareDevPodSpec, freeResources FreeResources) bool {
+func podFits(pod PodRequestedQuota, freeResources FreeDeviceResources) bool {
 	return pod.Requests <= freeResources.Requests && pod.Memory <= freeResources.Memory
 }
 

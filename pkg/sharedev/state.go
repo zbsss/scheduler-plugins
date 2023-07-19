@@ -10,7 +10,8 @@ const (
 	ShareDevStateKey = "ShareDevStateKey"
 )
 
-type ShareDevPodSpec struct {
+type PodRequestedQuota struct {
+	PodId    string
 	Vendor   string
 	Model    string
 	Requests float64
@@ -18,28 +19,36 @@ type ShareDevPodSpec struct {
 	Memory   float64
 }
 
-type FreeResources struct {
+type FreeDeviceResources struct {
 	DeviceId string
 	Requests float64
 	Memory   float64
 }
 
 type ShareDevState struct {
-	PodSpec              ShareDevPodSpec
-	FreeResourcesPerNode map[string][]FreeResources
+	PodQ                       PodRequestedQuota
+	FreeDeviceResourcesPerNode map[string][]FreeDeviceResources
+	NodeNameToIP               map[string]string
+	ReservedDeviceId           string
 }
 
 func (s *ShareDevState) Clone() framework.StateData {
 	n := ShareDevState{
-		FreeResourcesPerNode: make(map[string][]FreeResources),
-		PodSpec: s.PodSpec,
+		FreeDeviceResourcesPerNode: make(map[string][]FreeDeviceResources),
+		NodeNameToIP:               make(map[string]string),
+		PodQ:                       s.PodQ,
+		ReservedDeviceId:           s.ReservedDeviceId,
 	}
 
-	for k, v := range s.FreeResourcesPerNode {
-		arr := make([]FreeResources, len(v))
+	for k, v := range s.FreeDeviceResourcesPerNode {
+		arr := make([]FreeDeviceResources, len(v))
 		copy(arr, v)
 
-		n.FreeResourcesPerNode[k] = arr
+		n.FreeDeviceResourcesPerNode[k] = arr
+	}
+
+	for k, v := range s.NodeNameToIP {
+		n.NodeNameToIP[k] = v
 	}
 
 	return &n

@@ -3,56 +3,93 @@ package sharedev
 import (
 	"context"
 	"log"
+	"math"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 )
 
-func (sp *ShareDevPlugin) ScoreExtensions() framework.ScoreExtensions {
+func (sp *ShareDevPlugin) NormalizeScore(ctx context.Context, state *framework.CycleState, pod *v1.Pod, scores framework.NodeScoreList) *framework.Status {
+	log.Println("before normalization: ", "scores", scores)
+
+	// Get Min and Max Scores to normalize between framework.MaxNodeScore and framework.MinNodeScore
+	minCost, maxCost := getMinMaxScores(scores)
+
+	// If all nodes were given the minimum score, return
+	if minCost == 0 && maxCost == 0 {
+		return nil
+	}
+
+	var normCost float64
+	for i := range scores {
+		if maxCost != minCost { // If max != min
+			// node_normalized_cost = MAX_SCORE * ( ( nodeScore - minCost) / (maxCost - minCost)
+			// nodeScore = MAX_SCORE - node_normalized_cost
+			normCost = float64(framework.MaxNodeScore) * float64(scores[i].Score-minCost) / float64(maxCost-minCost)
+			scores[i].Score = framework.MaxNodeScore - int64(normCost)
+		} else { // If maxCost = minCost, avoid division by 0
+			normCost = float64(scores[i].Score - minCost)
+			scores[i].Score = framework.MaxNodeScore - int64(normCost)
+		}
+	}
+	log.Println("after normalization: ", "scores", scores)
 	return nil
+}
+
+// MinMax : get min and max scores from NodeScoreList
+func getMinMaxScores(scores framework.NodeScoreList) (int64, int64) {
+	var max int64 = math.MinInt64 // Set to min value
+	var min int64 = math.MaxInt64 // Set to max value
+
+	for _, nodeScore := range scores {
+		if nodeScore.Score > max {
+			max = nodeScore.Score
+		}
+		if nodeScore.Score < min {
+			min = nodeScore.Score
+		}
+	}
+	// return min and max scores
+	return min, max
+}
+
+func (sp *ShareDevPlugin) ScoreExtensions() framework.ScoreExtensions {
+	return sp
 }
 
 func (sp *ShareDevPlugin) Score(ctx context.Context, state *framework.CycleState, pod *v1.Pod, nodeName string) (int64, *framework.Status) {
 	log.Println("ShareDevPlugin Score is working!!")
 
-	score := framework.MinNodeScore
-
-	requestsScaleFactor := 100.0
-	memoryScaleFactor := 100.0
-
 	shareDevState, err := getShareDevState(state)
 	if err != nil {
-		return score, framework.NewStatus(framework.Error, err.Error())
+		return framework.MinNodeScore, framework.NewStatus(framework.Error, err.Error())
 	}
 
-	log.Printf("ShareDevPlugin shareDevState: %v", shareDevState)
-	log.Printf("ShareDevPlugin FreeResourcesPerNode: %v", shareDevState.FreeResourcesPerNode)
-	log.Println("ShareDevPlugin score free resources: ", shareDevState.FreeResourcesPerNode[nodeName])
+	highestScore, device := getBestFit(shareDevState.PodQ, shareDevState.FreeDeviceResourcesPerNode[nodeName])
 
-	for _, free := range shareDevState.FreeResourcesPerNode[nodeName] {
-		var nscore int64 = 0
+	log.Printf("ShareDevPlugin Score: %d for node: %s, deviceId: %s", highestScore, nodeName, device.DeviceId)
 
-		log.Printf("ShareDevPlugin NScore: %d for node: %s", nscore, nodeName)
+	return highestScore, framework.NewStatus(framework.Success)
+}
 
-		if podFits(shareDevState.PodSpec, free) {
-			nscore = int64(
-				(free.Requests-shareDevState.PodSpec.Requests)*requestsScaleFactor +
-					(free.Memory-shareDevState.PodSpec.Memory)*memoryScaleFactor,
-			)
+func getBestFit(pod PodRequestedQuota, freeResources []FreeDeviceResources) (int64, FreeDeviceResources) {
+	var device FreeDeviceResources
+	highestScore := framework.MinNodeScore
 
-			log.Printf("ShareDevPlugin NScore: %d for node: %s", nscore, nodeName)
+	for _, free := range freeResources {
+		if podFits(pod, free) {
+			score := int64((free.Requests - pod.Requests + free.Memory - pod.Memory) * 100)
+
+			if score > highestScore {
+				highestScore = score
+				device = free
+			}
 		}
-
-		if nscore > score {
-			score = nscore
-		}
 	}
 
-	if score > framework.MaxNodeScore {
-		score = framework.MaxNodeScore
+	if highestScore > framework.MaxNodeScore {
+		highestScore = framework.MaxNodeScore
 	}
 
-	log.Printf("ShareDevPlugin Score: %d for node: %s", score, nodeName)
-
-	return score, framework.NewStatus(framework.Success)
+	return highestScore, device
 }

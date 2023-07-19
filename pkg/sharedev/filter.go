@@ -18,14 +18,15 @@ func (sp *ShareDevPlugin) PreFilter(ctx context.Context, state *framework.CycleS
 	log.Println("ShareDevPlugin Hello world")
 	log.Println("ShareDevPlugin PreFilter is working!!")
 
-	podSpec, err := sp.parsePod(pod)
+	podQ, err := sp.parsePod(pod)
 	if err != nil {
 		return nil, framework.NewStatus(framework.Unschedulable, err.Error())
 	}
 
 	state.Write(ShareDevStateKey, &ShareDevState{
-		FreeResourcesPerNode: map[string][]FreeResources{},
-		PodSpec:              *podSpec,
+		FreeDeviceResourcesPerNode: map[string][]FreeDeviceResources{},
+		NodeNameToIP:               map[string]string{},
+		PodQ:                       *podQ,
 	})
 
 	return nil, framework.NewStatus(framework.Success)
@@ -51,7 +52,7 @@ func (sp *ShareDevPlugin) Filter(ctx context.Context, state *framework.CycleStat
 	}
 	log.Println("ShareDevPlugin nodeIP: ", nodeIP)
 
-	freeResources, err := sp.getFreeResources(nodeIP, shareDevState.PodSpec)
+	freeResources, err := getFreeResources(nodeIP, shareDevState.PodQ)
 	if err != nil {
 		return framework.NewStatus(framework.Unschedulable, err.Error())
 	}
@@ -59,12 +60,13 @@ func (sp *ShareDevPlugin) Filter(ctx context.Context, state *framework.CycleStat
 		return framework.NewStatus(framework.Unschedulable, "no resources available")
 	}
 
-	shareDevState.FreeResourcesPerNode[nodeInfo.Node().Name] = freeResources
+	shareDevState.FreeDeviceResourcesPerNode[nodeInfo.Node().Name] = freeResources
+	shareDevState.NodeNameToIP[nodeInfo.Node().Name] = nodeIP
 
 	log.Println("ShareDevPlugin freeResources: ", freeResources)
 
 	for _, free := range freeResources {
-		if podFits(shareDevState.PodSpec, free) {
+		if podFits(shareDevState.PodQ, free) {
 			return framework.NewStatus(framework.Success)
 		}
 	}
@@ -75,7 +77,7 @@ func (sp *ShareDevPlugin) Filter(ctx context.Context, state *framework.CycleStat
 	return framework.NewStatus(framework.Unschedulable, "no resources available")
 }
 
-func (sp *ShareDevPlugin) parsePod(pod *v1.Pod) (*ShareDevPodSpec, error) {
+func (sp *ShareDevPlugin) parsePod(pod *v1.Pod) (*PodRequestedQuota, error) {
 	if pod.Labels["sharedev.vendor"] == "" || pod.Labels["sharedev.model"] == "" {
 		return nil, fmt.Errorf("pod does not have sharedev.vendor or sharedev.model label")
 	}
@@ -95,7 +97,8 @@ func (sp *ShareDevPlugin) parsePod(pod *v1.Pod) (*ShareDevPodSpec, error) {
 		limits = requests
 	}
 
-	return &ShareDevPodSpec{
+	return &PodRequestedQuota{
+		PodId:    pod.Name,
 		Vendor:   pod.Labels["sharedev.vendor"],
 		Model:    pod.Labels["sharedev.model"],
 		Requests: requests,
