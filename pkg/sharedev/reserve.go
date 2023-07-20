@@ -14,6 +14,10 @@ func copyPod(pod *v1.Pod, hostIP, nodeName, deviceId string) *v1.Pod {
 	podCopy.ResourceVersion = ""
 	podCopy.Spec.NodeName = nodeName
 
+	// this label is used by Device Managers to query healthy pods
+	// and run garbage collection to free up devices
+	podCopy.Labels["sharedev"] = "true"
+
 	for i := range podCopy.Spec.Containers {
 		c := &podCopy.Spec.Containers[i]
 		c.Env = append(c.Env,
@@ -75,17 +79,4 @@ func (sp *ShareDevPlugin) Reserve(ctx context.Context, state *framework.CycleSta
 
 func (sp *ShareDevPlugin) Unreserve(ctx context.Context, state *framework.CycleState, p *v1.Pod, nodeName string) {
 	log.Println("ShareDevPlugin Unreserve is working!!")
-
-	shareDevState, err := getShareDevState(state)
-	if err != nil {
-		log.Printf("ShareDevPlugin Unreserve: error getting ShareDevState: %s", err.Error())
-	}
-
-	err = unreservePodQuota(shareDevState.NodeNameToIP[nodeName], shareDevState.ReservedDeviceId, shareDevState.PodQ)
-	if err != nil {
-		log.Printf("ShareDevPlugin Unreserve: error unreserving device: %s", err.Error())
-	}
-
-	log.Printf("ShareDevPlugin Reserve: reserved device: %s on node: %s", shareDevState.ReservedDeviceId, nodeName)
-	shareDevState.ReservedDeviceId = ""
 }

@@ -47,7 +47,7 @@ func getFreeResources(nodeIP string, pod PodRequestedQuota) ([]FreeDeviceResourc
 }
 
 func reservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	conn, err := grpc.DialContext(
@@ -68,29 +68,6 @@ func reservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
 		Requests: pod.Requests,
 		Memory:   pod.Memory,
 		Limit:    pod.Limits,
-	})
-	return err
-}
-
-func unreservePodQuota(nodeIP, deviceId string, pod PodRequestedQuota) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-
-	conn, err := grpc.DialContext(
-		ctx,
-		fmt.Sprintf("%s:%s", nodeIP, deviceManagerPort),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return fmt.Errorf("did not connect: %v", err)
-	}
-	defer conn.Close()
-
-	grpc := pb.NewDeviceManagerClient(conn)
-
-	_, err = grpc.UnreservePodQuota(ctx, &pb.UnreservePodQuotaRequest{
-		DeviceId: deviceId,
-		PodId:    pod.PodId,
 	})
 	return err
 }
