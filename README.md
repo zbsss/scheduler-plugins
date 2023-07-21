@@ -1,6 +1,14 @@
 ```
 make local-image
 
+docker tag localhost:5000/scheduler-plugins/kube-scheduler:latest zbsss/scheduler-plugins-kube-scheduler:latest
+
+docker push zbsss/scheduler-plugins-kube-scheduler:latest
+```
+
+```
+make local-image
+
 docker tag localhost:5000/scheduler-plugins/controller:latest zbsss/scheduler-plugins-controller:latest
 docker tag localhost:5000/scheduler-plugins/kube-scheduler:latest zbsss/scheduler-plugins-kube-scheduler:latest
 

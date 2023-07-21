@@ -2,6 +2,7 @@ package sharedev
 
 import (
 	"fmt"
+	"log"
 
 	"k8s.io/kubernetes/pkg/scheduler/framework"
 )
@@ -40,6 +41,8 @@ func (s *ShareDevState) Clone() framework.StateData {
 		ReservedDeviceId:           s.ReservedDeviceId,
 	}
 
+	log.Printf("Running Clone: Before State: %v", s)
+
 	for k, v := range s.FreeDeviceResourcesPerNode {
 		arr := make([]FreeDeviceResources, len(v))
 		copy(arr, v)
@@ -50,6 +53,8 @@ func (s *ShareDevState) Clone() framework.StateData {
 	for k, v := range s.NodeNameToIP {
 		n.NodeNameToIP[k] = v
 	}
+
+	log.Printf("Running Clone: After State: %v", n)
 
 	return &n
 }

@@ -44,12 +44,15 @@ func (sp *ShareDevPlugin) Reserve(ctx context.Context, state *framework.CycleSta
 
 	shareDevState, err := getShareDevState(state)
 	if err != nil {
-		return framework.NewStatus(framework.Unschedulable, err.Error())
+		return framework.NewStatus(framework.Error, err.Error())
 	}
 
 	nodeIP := shareDevState.NodeNameToIP[nodeName]
 	_, device := getBestFit(shareDevState.PodQ, shareDevState.FreeDeviceResourcesPerNode[nodeName])
 
+	// TODO: deviceID and nodeIP are both empty!!!! Why?
+	log.Printf("Reserve State: %v", shareDevState)
+	log.Printf("ShareDevPlugin [Reserve] device %s pod: %s in node %s %s", device.DeviceId, pod.Name, nodeName, nodeIP)
 	err = reservePodQuota(nodeIP, device.DeviceId, shareDevState.PodQ)
 	if err != nil {
 		log.Printf("ShareDevPlugin Reserve: error reserving device: %s", err.Error())

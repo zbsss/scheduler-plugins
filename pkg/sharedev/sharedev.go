@@ -17,7 +17,9 @@ type ShareDevPlugin struct {
 
 var _ framework.PreFilterPlugin = &ShareDevPlugin{}
 var _ framework.FilterPlugin = &ShareDevPlugin{}
-var _ framework.ScorePlugin = &ShareDevPlugin{}
+var _ framework.PostFilterPlugin = &ShareDevPlugin{}
+
+// var _ framework.ScorePlugin = &ShareDevPlugin{}
 var _ framework.ReservePlugin = &ShareDevPlugin{}
 
 // Name returns name of the plugin.
