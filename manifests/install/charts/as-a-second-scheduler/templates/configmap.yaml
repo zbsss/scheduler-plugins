@@ -18,17 +18,6 @@ data:
           enabled:
           - name: ShareDevPlugin
             weight: 5
-        #   {{- range $.Values.plugins.enabled }}
-        #   - name: {{ title . }}
-        #   {{- end }}
-        #   disabled:
-        #   {{- range $.Values.plugins.disabled }}
-        #   - name: {{ title . }}
-        #   {{- end }}
-        # score:
-        #   enabled:
-        #   - name: 'ShareDevPlugin'
-        #     weight: 5
       {{- if $.Values.pluginConfig }}
       pluginConfig: {{ toYaml $.Values.pluginConfig | nindent 6 }}
       {{- end }}

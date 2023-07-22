@@ -16,7 +16,7 @@ func copyPod(pod *v1.Pod, hostIP, nodeName, deviceId string) *v1.Pod {
 
 	// this label is used by Device Managers to query healthy pods
 	// and run garbage collection to free up devices
-	podCopy.Labels["sharedev"] = "true"
+	podCopy.Labels["sharedev"] = "client"
 
 	for i := range podCopy.Spec.Containers {
 		c := &podCopy.Spec.Containers[i]
@@ -50,7 +50,6 @@ func (sp *ShareDevPlugin) Reserve(ctx context.Context, state *framework.CycleSta
 	nodeIP := shareDevState.NodeNameToIP[nodeName]
 	_, device := getBestFit(shareDevState.PodQ, shareDevState.FreeDeviceResourcesPerNode[nodeName])
 
-	// TODO: deviceID and nodeIP are both empty!!!! Why?
 	log.Printf("Reserve State: %v", shareDevState)
 	log.Printf("ShareDevPlugin [Reserve] device %s pod: %s in node %s %s", device.DeviceId, pod.Name, nodeName, nodeIP)
 	err = reservePodQuota(nodeIP, device.DeviceId, shareDevState.PodQ)

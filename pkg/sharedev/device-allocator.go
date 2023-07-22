@@ -35,7 +35,8 @@ func (sp *ShareDevPlugin) allocateNewDevice(vendor, model string) (string, error
 			Template: corev1.PodTemplateSpec{ // The pods that will be created
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": deployName,
+						"app":      deployName,
+						"sharedev": "allocator",
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -49,12 +50,28 @@ func (sp *ShareDevPlugin) allocateNewDevice(vendor, model string) (string, error
 						},
 						Env: []corev1.EnvVar{
 							{
+								Name: "ALLOCATOR_POD_ID",
+								ValueFrom: &corev1.EnvVarSource{
+									FieldRef: &corev1.ObjectFieldSelector{
+										FieldPath: "metadata.name",
+									},
+								},
+							},
+							{
 								Name: "HOST_IP",
 								ValueFrom: &corev1.EnvVarSource{
 									FieldRef: &corev1.ObjectFieldSelector{
 										FieldPath: "status.hostIP",
 									},
 								},
+							},
+							{
+								Name:  "VENDOR",
+								Value: vendor,
+							},
+							{
+								Name:  "MODEL",
+								Value: model,
 							},
 						},
 					}},
@@ -69,12 +86,15 @@ func (sp *ShareDevPlugin) allocateNewDevice(vendor, model string) (string, error
 	}
 
 	timeout := time.After(60 * time.Second)
-	watch, _ := sp.handle.ClientSet().CoreV1().Pods("default").Watch(
+	watch, err := sp.handle.ClientSet().CoreV1().Pods("default").Watch(
 		context.Background(),
 		metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("app=%s", deployName),
 		},
 	)
+	if err != nil {
+		return "", fmt.Errorf("error watching pod status: %s", err.Error())
+	}
 	defer watch.Stop()
 
 	for {
