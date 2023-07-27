@@ -14,7 +14,7 @@ require (
 	github.com/paypal/load-watcher v0.2.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/zbsss/device-manager v0.0.5
+	github.com/zbsss/device-manager v0.0.9
 	gonum.org/v1/gonum v0.12.0
 	google.golang.org/grpc v1.56.2
 	k8s.io/api v0.26.3
